@@ -1,0 +1,5 @@
+autopep8==1.5.4
+pycodestyle==2.6.0
+PySide2==5.15.1
+shiboken2==5.15.1
+toml==0.10.1
