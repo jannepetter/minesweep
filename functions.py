@@ -1,8 +1,9 @@
-from PySide2.QtCore import QSize
+from datetime import datetime
+from PySide2.QtCore import QSize, Qt
 from PySide2.QtGui import QIcon, QPixmap
 from PySide2.QtWidgets import QGridLayout, QLabel, QWidget
 import random
-from components import state, fieldButton, myWindow, images, buttonHeight, buttonWidth, collector
+from components import scoreForm, state, fieldButton, images, buttonHeight, buttonWidth, scoreform
 
 
 def clearLayout(layout):
@@ -16,16 +17,67 @@ def clearLayout(layout):
             clearLayout(child.layout())
 
 
-def readFile(file):
-    scoreList = []
-    with open(file) as filu:
-        for rivi in file.readlines():
-            scoreList.append(rivi.strip().split(';'))
-    return scoreList
+def sortAndCutHighScoreList(difficulty, state=state):
+    state['highScores'][difficulty].sort(
+        key=lambda s: int(s[1]))
+    state['highScores'][difficulty].reverse()
+    del state['highScores'][difficulty][10:]
 
 
-def writeFileNewScores(file):
-    pass
+def writeStatsToFile(state, file='statistics.txt'):
+    pva = str(state['gameStarts'].strftime('%Y %B %d %H:%M:%S'))
+    dur = str((datetime.now()-state['gameStarts']).seconds//60)
+    flagged = state['scoreInfo']
+    diff = state['difficultyInfo']
+    totalMines = state['difficulty'][diff][2]
+
+    newStat = 'Game begins: {} , game duration: {} min, mines flagged {}/{}, difficulty: {}\n'.format(
+        pva, dur, flagged, totalMines, diff
+    )
+    with open(file, 'a') as filu:
+        filu.write(newStat)
+
+
+def readHighScoresFile(file):
+    easy = []
+    normal = []
+    hard = []
+    try:
+        with open(file) as filu:
+            for rivi in filu.readlines():
+                rivi = rivi.strip().split(';')
+                if rivi[0] == 'easy':
+                    easy.append((rivi[1], rivi[2]))
+                elif rivi[0] == 'normal':
+                    normal.append((rivi[1], rivi[2]))
+                elif rivi[0] == 'hard':
+                    hard.append((rivi[1], rivi[2]))
+    except FileNotFoundError:
+        print('Ei löydy {} nimistä tiedostoa'.format(file))
+
+    state['highScores']['easy'] = easy
+    state['highScores']['normal'] = normal
+    state['highScores']['hard'] = hard
+    sortAndCutHighScoreList('easy')
+    sortAndCutHighScoreList('normal')
+    sortAndCutHighScoreList('hard')
+
+
+def writeFileNewScores(state, file='scores.csv'):
+    with open(file, 'w') as filu:
+        max = 10
+        for i, el in enumerate(state['highScores']['easy']):
+            if i < max:
+                newline = 'easy;{};{}\n'.format(el[0], str(el[1]))
+                filu.write(newline)
+        for i, el in enumerate(state['highScores']['normal']):
+            if i < max:
+                newline = 'normal;{};{}\n'.format(el[0], str(el[1]))
+                filu.write(newline)
+        for i, el in enumerate(state['highScores']['hard']):
+            if i < max:
+                newline = 'hard;{};{}\n'.format(el[0], str(el[1]))
+                filu.write(newline)
 
 
 def gameButton(icon: str, width: int, height: int):
@@ -91,13 +143,33 @@ def countScore(flags):
     return score
 
 
-def initScores():
+def initScores(container):
+    container.removeWidget(state["scoreWidget"])
+    newScoreWidget = QWidget()
+    newScoreWidget.hide()
     scoreLayout = QGridLayout()
-    # scoreLayout.setSizeConstraint(QGridLayout.SetFixedSize)
-    for i, el in enumerate(state['hiScores']['easy']):
+    scoreLayout.setAlignment(Qt.AlignTop)
+    diff1 = QLabel('Easy')
+    scoreLayout.addWidget(diff1, 0, 1)
+    for i, el in enumerate(state['highScores']['easy']):
         text = "{} {}".format(el[0], el[1])
         topPlayer = QLabel(text)
-        scoreLayout.addWidget(topPlayer, i, 1)
+        scoreLayout.addWidget(topPlayer, i+1, 1)
+    diff2 = QLabel('Normal')
+    scoreLayout.addWidget(diff2, 0, 2)
+    for i, el in enumerate(state['highScores']['normal']):
+        text = "{} {}".format(el[0], el[1])
+        topPlayer = QLabel(text)
+        scoreLayout.addWidget(topPlayer, i+1, 2)
+    diff3 = QLabel('Hard')
+    scoreLayout.addWidget(diff3, 0, 3)
+    for i, el in enumerate(state['highScores']['hard']):
+        text = "{} {}".format(el[0], el[1])
+        topPlayer = QLabel(text)
+        scoreLayout.addWidget(topPlayer, i+1, 3)
+    newScoreWidget.setLayout(scoreLayout)
+    state['scoreWidget'] = newScoreWidget
+    container.addWidget(newScoreWidget)
     return scoreLayout
 
 
@@ -113,7 +185,16 @@ def endGame():
             button.setEnabled(False)
     flags = getFlagList()
     score = countScore(flags)
-    print('skoore iss', score)
+    state['scoreInfo'] = score
+    writeStatsToFile(state)
+    checklist = state['highScores'][state['difficultyInfo']]
+    topPlayerCount = len(checklist)
+    if topPlayerCount == 0:
+        state['scoreForm'].show()
+    else:
+        lastTopScore = int(checklist[-1][1])
+        if topPlayerCount < 10 or lastTopScore < score:
+            state['scoreForm'].show()
 
 
 def floodFill(startX: int, startY: int, state=state):
@@ -205,16 +286,16 @@ def setState(width: int, height: int, mines: int) -> None:
                     countSurroundingMines(j, i, state['field']))
 
 
-# def changeDifficulty(container, containerWidth, containerHeight, numberOfMines):
-#     clearLayout(state['mineFieldInstance'])
-#     setState(containerWidth, containerHeight, numberOfMines)
-#     newField = initField(state, buttonWidth, buttonHeight)
-#     state['mineFieldInstance'] = newField
-#     container.addLayout(newField)
-
 def changeDifficulty(container, containerWidth, containerHeight, numberOfMines):
     clearLayout(state['mineFieldInstance'])
     container.removeWidget(state['mineFieldWidget'])
+    container.removeWidget(state['scoreForm'])
+    state['mineFieldWidget'].deleteLater()
+    state['scoreForm'].deleteLater()
+    newscoreForm = scoreForm()
+    container.addWidget(newscoreForm)
+    newscoreForm.hide()
+    state['scoreForm'] = newscoreForm
     newMineField = QWidget()
     setState(containerWidth, containerHeight, numberOfMines)
     newField = initField(state, buttonWidth, buttonHeight)

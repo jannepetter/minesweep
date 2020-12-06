@@ -1,0 +1,1 @@
+Game begins: 2020 December 06 13:30:55 , game duration: 0 min, mines flagged 0/10, difficulty: easy

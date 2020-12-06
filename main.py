@@ -1,31 +1,29 @@
 import sys
-
+from datetime import datetime
 from PySide2.QtCore import Qt
-from functions import setState, initField, initScores
+from functions import setState, initField, initScores, readHighScoresFile
 from components import menu, state, app, myWindow, collector, buttonHeight, buttonWidth, infoBar, scoreWidget, mineFieldWidget
+from components import scoreform
 
-# testailua normal difficulty valikossa. Laita siinä aluksi toimiin että fieldi
-# häviää ja scoret tulee näkyviin. Nyt on ihan sekasin collectorit ja mineFieldwidgetit
-# toimii jotenki mutta jossaivaiheessa tulee varmasti kunnon bugeja jos noin jättää
-# kokeile QStackedwidget jos ei muuten toimi
-# menuun nappi josta toggle kenttä ja scoret
-# jäit readfile ja writenewScores funtionssii
-# highscore / tilastot ja nimmarinkirjotus
-# aika ja lippujen määrä
-# joku klikkausääni voi kans olla hyvä
-# requirements hommelit
+# tyhjällä score tiedostolla bugi
+# tilastowidgetti, vaikka 20 viimesintä peliä sinne
+# siisti koodia
+# siisti ulkoasua
 
 
 def main():
+    readHighScoresFile('scores.csv')
     easy = state['difficulty']['easy']
+    state['scoreWidget'] = scoreWidget
     fieldWidth = easy[0]
     fieldHeight = easy[1]
     mines = easy[2]
     print('miinoja', mines)
     setState(fieldWidth, fieldHeight, mines)
     wid = myWindow
-    scoreLayout = initScores()
+    scoreLayout = initScores(collector)
     scoreWidget.setLayout(scoreLayout)
+
     mineField = initField(state, buttonWidth, buttonHeight)
     mineFieldWidget.setLayout(mineField)
     state['mineFieldInstance'] = mineField
@@ -37,10 +35,14 @@ def main():
 
     collector.addWidget(mineFieldWidget)
     collector.addWidget(scoreWidget)
-    # scoreWidget.hide()
+    collector.addWidget(scoreform)
+    state['scoreForm'] = scoreform
+    scoreWidget.hide()
+    state['scoreWidget'] = scoreWidget
     wid.setLayout(collector)
 
-    wid.setWindowTitle("Simple.. or is it??")
+    wid.setWindowTitle("Minesweep")
+    state['gameStarts'] = datetime.now()
 
     wid.show()
     sys.exit(app.exec_())

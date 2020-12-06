@@ -1,8 +1,9 @@
 from random import setstate
 import sys
-from PySide2.QtCore import QObject, Qt
+from datetime import datetime
+from PySide2.QtCore import Qt
 from PySide2.QtGui import QIcon, QPixmap
-from PySide2.QtWidgets import QApplication, QLabel, QPushButton, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget, QGridLayout, QRadioButton, QHBoxLayout
+from PySide2.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QGridLayout, QRadioButton, QHBoxLayout
 import functions
 
 
@@ -12,16 +13,23 @@ state = {
     "fieldButtons": [],
     "mineFieldInstance": {},
     "mineFieldWidget": {},
+    "scoreWidget": {},  # scores window
+    "scoreForm": {},    # input form for new highscore
     "difficulty": {
         "easy": [5, 5, 10],  # width, height, mines
         "normal": [10, 10, 30],
         "hard": [15, 20, 50]
     },
     "mineInfo": 10,          # show how many mines in the field, start with easy
-    "hiScores": {
-        "easy": [["keksa", "1900"], ["leksa", "1800"], ["jorma", "1700"]],
-        "normal": [("jebulis", "11900"), ("lerppu", "11800"), ("jaska", "1700")]
-    }
+    "difficultyInfo": "easy",  # start default as easy
+    "scoreInfo": 0,  # when game ends, score gets counted and end up here
+    "highScores": {
+        "easy": [],
+        "normal": [],
+        "hard": []
+    },
+    "gameStarts": {},
+    "gameTurns": 0
 }
 buttonHeight = 40
 buttonWidth = 40
@@ -41,80 +49,160 @@ infolayout.addWidget(minesCount)
 infoBar.setLayout(infolayout)
 
 scoreWidget = QWidget()
+
 mineFieldWidget = QWidget()
+
+
+class scoreForm(QWidget):
+    def __init__(self):
+        super(scoreForm, self).__init__()
+        layout = QVBoxLayout()
+        self.label = QLabel('New Highscore!')
+        self.label2 = QLabel(
+            'Enter your name, max 12 characters, ";" not allowed')
+        self.nimmari = QLineEdit()
+        self.nimmari.setMaxLength(12)
+        self.nimmari.setFixedWidth(120)
+        self.sButton = QPushButton('Submit')
+        self.sButton.setFixedSize(90, 30)
+        self.sButton.clicked.connect(
+            lambda: self.submitScore())
+        layout.addWidget(self.label)
+        layout.addWidget(self.label2)
+        layout.addWidget(self.nimmari)
+        layout.addWidget(self.sButton)
+        self.setLayout(layout)
+
+    def submitScore(self):
+        if ';' in self.nimmari.text():
+            print('soo soo kielletty merkki')
+        else:
+            newHighScore = (self.nimmari.text(), str(state['scoreInfo']))
+            state['highScores'][state['difficultyInfo']].append(newHighScore)
+            functions.sortAndCutHighScoreList(state['difficultyInfo'])
+            functions.writeFileNewScores(state)
+            functions.initScores(collector)
+            state['scoreInfo'] = 0
+            self.nimmari.clear()
+            self.setDisabled(True)
+
+
+scoreform = scoreForm()
+scoreform.hide()
 
 
 class menuhomma(QWidget):
     def __init__(self):
         super(menuhomma, self).__init__()
-        layout = QHBoxLayout()
+        bWidth = 55
+        layout = QGridLayout()
+        layout.setAlignment(Qt.AlignLeft)
         self.b1 = QRadioButton("Easy")
         self.b1.setProperty("difficulty", "easy")
         self.b1.setChecked(True)
         self.b1.toggled.connect(lambda: self.setDifficulty(self.b1))
-        layout.addWidget(self.b1)
+        layout.addWidget(self.b1, 0, 0)
         self.b2 = QRadioButton("Normal")
         self.b2.setProperty("difficulty", "normal")
         self.b2.toggled.connect(lambda: self.setDifficulty(self.b2))
-        layout.addWidget(self.b2)
+        layout.addWidget(self.b2, 0, 1)
         self.b3 = QRadioButton("Hard")
         self.b3.setProperty("difficulty", "hard")
         self.b3.toggled.connect(lambda: self.setDifficulty(self.b3))
-        layout.addWidget(self.b3)
-        self.info = infoBar
+        layout.addWidget(self.b3, 0, 2)
+        self.b4 = QPushButton("Scores")
+
+        self.b4.clicked.connect(lambda: self.toggleScores(self.b4))
+        layout.addWidget(self.b4, 0, 3)
+        self.b5 = QPushButton('Restart')
+        self.b5.clicked.connect(lambda: self.restartGame())
+        self.b6 = QPushButton('Quit')
+        self.b6.clicked.connect(lambda: self.quitGame())
+        self.b7 = QPushButton('Stats')
+        self.b7.clicked.connect(lambda: self.showStats())
+
+        layout.addWidget(self.b5, 1, 0)
+        layout.addWidget(self.b6, 1, 1)
+        layout.addWidget(self.b7, 1, 2)
         self.setLayout(layout)
+        self.b1.setFixedWidth(bWidth)
+        self.b2.setFixedWidth(bWidth)
+        self.b3.setFixedWidth(bWidth)
+        self.b4.setFixedWidth(bWidth)
+        self.b5.setFixedWidth(bWidth)
+        self.b6.setFixedWidth(bWidth)
+        self.b7.setFixedWidth(bWidth)
+
+    def showStats(self):
+        # functions.writeStatsToFile(state)
+        pass
+
+    def quitGame(self):
+        sys.exit()
+
+    def restartGame(self):
+        diff = state['difficulty'][state['difficultyInfo']]
+        functions.changeDifficulty(
+            collector, diff[0], diff[1], diff[2])
+        state['gameStarts'] = datetime.now()
+        state['gameTurns'] = 0
+
+    def toggleScores(self, button):
+        scoreBoard = state['scoreWidget']
+        if scoreBoard.isHidden():
+            scoreBoard.setFixedWidth(state['mineFieldWidget'].width())
+            scoreBoard.setFixedHeight(state['mineFieldWidget'].height())
+            scoreBoard.show()
+            self.b1.setEnabled(False)
+            self.b2.setEnabled(False)
+            self.b3.setEnabled(False)
+            self.b5.setEnabled(False)
+            self.b6.setEnabled(False)
+            self.b7.setEnabled(False)
+            minesCount.hide()
+            state['mineFieldWidget'].hide()
+        else:
+            scoreBoard.hide()
+            self.b1.setEnabled(True)
+            self.b2.setEnabled(True)
+            self.b3.setEnabled(True)
+            self.b5.setEnabled(True)
+            self.b6.setEnabled(True)
+            self.b7.setEnabled(True)
+            state['mineFieldWidget'].show()
+            minesCount.show()
 
     def setDifficulty(self, button):
+        state['gameStarts'] = datetime.now()
+        state['gameTurns'] = 0
         if button.isChecked():
-            print(self.b3.isChecked())
             difficulty = button.property("difficulty")
             if difficulty == "hard":
                 hard = state['difficulty']['hard']
                 state['mineInfo'] = hard[2]
+                state['difficultyInfo'] = 'hard'
                 text = "Mines left: {}".format(hard[2])
                 minesCount.setText(text)
                 functions.changeDifficulty(
                     collector, hard[0], hard[1], hard[2])
+
             if difficulty == "normal":
                 normal = state['difficulty']['normal']
                 state['mineInfo'] = normal[2]
+                state['difficultyInfo'] = 'normal'
                 text = "Mines left: {}".format(normal[2])
                 minesCount.setText(text)
-                # scoreWidget.hide()
                 functions.changeDifficulty(
                     collector, normal[0], normal[1], normal[2])
 
             if difficulty == "easy":
                 easy = state['difficulty']['easy']
                 state['mineInfo'] = easy[2]
+                state['difficultyInfo'] = 'easy'
                 text = "Mines left: {}".format(easy[2])
                 minesCount.setText(text)
                 functions.changeDifficulty(
                     collector, easy[0], easy[1], easy[2])
-
-        # if self.b3.isChecked():
-        #     hard = state['difficulty']['hard']
-        #     state['mineInfo'] = hard[2]
-        #     text = "Mines left: {}".format(hard[2])
-        #     minesCount.setText(text)
-        #     functions.changeDifficulty(
-        #         collector, hard[0], hard[1], hard[2])
-        # if self.b2.isChecked():
-        #     normal = state['difficulty']['normal']
-        #     state['mineInfo'] = normal[2]
-        #     text = "Mines left: {}".format(normal[2])
-        #     minesCount.setText(text)
-        #     # scoreWidget.hide()
-        #     functions.changeDifficulty(
-        #         collector, normal[0], normal[1], normal[2])
-
-        # if self.b1.isChecked():
-        #     easy = state['difficulty']['easy']
-        #     state['mineInfo'] = easy[2]
-        #     text = "Mines left: {}".format(easy[2])
-        #     minesCount.setText(text)
-        #     functions.changeDifficulty(
-        #         collector, easy[0], easy[1], easy[2])
 
 
 menu = menuhomma()
@@ -142,6 +230,7 @@ class fieldButton(QPushButton):
                 state['showField'][pos[0]][pos[1]] = 's'
         else:
             functions.floodFill(pos[1], pos[0])
+            state['gameTurns'] += 1
 
 
 images = {
