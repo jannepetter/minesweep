@@ -1,3 +1,4 @@
+Game begins: 2020 December 09 11:38:55 , duration: 0 min, turns 3, mines flagged 4/30, difficulty: normal
 Game begins: 2020 December 09 11:36:27 , duration: 0 min, turns 4, mines flagged 2/10, difficulty: easy
 Game begins: 2020 December 09 11:31:06 , duration: 0 min, turns 2, mines flagged 1/10, difficulty: easy
 Game begins: 2020 December 09 11:27:50 , duration: 0 min, turns 2, mines flagged 9/50, difficulty: hard

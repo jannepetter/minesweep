@@ -1,13 +1,8 @@
 import sys
 from datetime import datetime
-from PySide2.QtCore import Qt
 from functions import initStats, readStatisticsFile, setState, initField, initScores, readHighScoresFile
 from components import menu, state, app, myWindow, collector, buttonHeight, buttonWidth
 from components import scoreform, statsWidget, infoBar, scoreWidget, mineFieldWidget
-
-
-# siisti koodia
-# siisti ulkoasua
 
 
 def main():
