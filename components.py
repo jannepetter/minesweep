@@ -8,12 +8,12 @@ import functions
 
 
 state = {
-    "field": [],
-    "showField": [],
+    "field": [],  # minefield info
+    "showField": [],  # revealed minefield info
     "fieldButtons": [],
-    "mineFieldInstance": {},
     "mineFieldWidget": {},
     "scoreWidget": {},  # scores window
+    "statsWidget": {},  # stats window
     "scoreForm": {},    # input form for new highscore
     "difficulty": {
         "easy": [5, 5, 10],  # width, height, mines
@@ -23,13 +23,14 @@ state = {
     "mineInfo": 10,          # show how many mines in the field, start with easy
     "difficultyInfo": "easy",  # start default as easy
     "scoreInfo": 0,  # when game ends, score gets counted and end up here
-    "highScores": {
+    "highScores": {  # list of top scores read from file to here
         "easy": [],
         "normal": [],
         "hard": []
     },
-    "gameStarts": {},
-    "gameTurns": 0
+    "gameStarts": {},  # datetime object
+    "gameTurns": 0,
+    "statistics": []
 }
 buttonHeight = 40
 buttonWidth = 40
@@ -49,8 +50,8 @@ infolayout.addWidget(minesCount)
 infoBar.setLayout(infolayout)
 
 scoreWidget = QWidget()
-
 mineFieldWidget = QWidget()
+statsWidget = QWidget()
 
 
 class scoreForm(QWidget):
@@ -60,30 +61,30 @@ class scoreForm(QWidget):
         self.label = QLabel('New Highscore!')
         self.label2 = QLabel(
             'Enter your name, max 12 characters, ";" not allowed')
-        self.nimmari = QLineEdit()
-        self.nimmari.setMaxLength(12)
-        self.nimmari.setFixedWidth(120)
+        self.nameInput = QLineEdit()
+        self.nameInput.setMaxLength(12)
+        self.nameInput.setFixedWidth(120)
         self.sButton = QPushButton('Submit')
         self.sButton.setFixedSize(90, 30)
         self.sButton.clicked.connect(
             lambda: self.submitScore())
         layout.addWidget(self.label)
         layout.addWidget(self.label2)
-        layout.addWidget(self.nimmari)
+        layout.addWidget(self.nameInput)
         layout.addWidget(self.sButton)
         self.setLayout(layout)
 
     def submitScore(self):
-        if ';' in self.nimmari.text():
+        if ';' in self.nameInput.text():
             print('soo soo kielletty merkki')
         else:
-            newHighScore = (self.nimmari.text(), str(state['scoreInfo']))
+            newHighScore = (self.nameInput.text(), str(state['scoreInfo']))
             state['highScores'][state['difficultyInfo']].append(newHighScore)
             functions.sortAndCutHighScoreList(state['difficultyInfo'])
             functions.writeFileNewScores(state)
             functions.initScores(collector)
             state['scoreInfo'] = 0
-            self.nimmari.clear()
+            self.nameInput.clear()
             self.setDisabled(True)
 
 
@@ -91,9 +92,9 @@ scoreform = scoreForm()
 scoreform.hide()
 
 
-class menuhomma(QWidget):
+class menuWidget(QWidget):
     def __init__(self):
-        super(menuhomma, self).__init__()
+        super(menuWidget, self).__init__()
         bWidth = 55
         layout = QGridLayout()
         layout.setAlignment(Qt.AlignLeft)
@@ -112,7 +113,7 @@ class menuhomma(QWidget):
         layout.addWidget(self.b3, 0, 2)
         self.b4 = QPushButton("Scores")
 
-        self.b4.clicked.connect(lambda: self.toggleScores(self.b4))
+        self.b4.clicked.connect(lambda: self.toggleScores())
         layout.addWidget(self.b4, 0, 3)
         self.b5 = QPushButton('Restart')
         self.b5.clicked.connect(lambda: self.restartGame())
@@ -134,8 +135,27 @@ class menuhomma(QWidget):
         self.b7.setFixedWidth(bWidth)
 
     def showStats(self):
-        # functions.writeStatsToFile(state)
-        pass
+        statsWindow = state["statsWidget"]
+        if statsWindow.isHidden():
+            statsWindow.show()
+            self.b1.setEnabled(False)
+            self.b2.setEnabled(False)
+            self.b3.setEnabled(False)
+            self.b4.setEnabled(False)
+            self.b5.setEnabled(False)
+            self.b6.setEnabled(False)
+            minesCount.hide()
+            state['mineFieldWidget'].hide()
+        else:
+            statsWindow.hide()
+            self.b1.setEnabled(True)
+            self.b2.setEnabled(True)
+            self.b3.setEnabled(True)
+            self.b4.setEnabled(True)
+            self.b5.setEnabled(True)
+            self.b6.setEnabled(True)
+            state['mineFieldWidget'].show()
+            minesCount.show()
 
     def quitGame(self):
         sys.exit()
@@ -146,8 +166,9 @@ class menuhomma(QWidget):
             collector, diff[0], diff[1], diff[2])
         state['gameStarts'] = datetime.now()
         state['gameTurns'] = 0
+        minesCount.setText(functions.getInfoText(state['mineInfo']))
 
-    def toggleScores(self, button):
+    def toggleScores(self):
         scoreBoard = state['scoreWidget']
         if scoreBoard.isHidden():
             scoreBoard.setFixedWidth(state['mineFieldWidget'].width())
@@ -205,7 +226,7 @@ class menuhomma(QWidget):
                     collector, easy[0], easy[1], easy[2])
 
 
-menu = menuhomma()
+menu = menuWidget()
 
 
 class fieldButton(QPushButton):
