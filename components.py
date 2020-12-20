@@ -1,9 +1,18 @@
-from random import setstate
 import sys
 from datetime import datetime
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QIcon, QPixmap
-from PySide2.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QGridLayout, QRadioButton, QHBoxLayout
+from PySide2.QtWidgets import (
+    QApplication,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+    QGridLayout,
+    QRadioButton,
+    QHBoxLayout,
+)
 import functions
 
 
@@ -11,29 +20,29 @@ state = {
     "field": [],  # minefield info
     "showField": [],  # revealed minefield info
     "fieldButtons": [],
-    "mineFieldWidget": {},
-    "scoreWidget": {},  # scores window
-    "statsWidget": {},  # stats window
-    "scoreForm": {},    # input form for new highscore
+    "mineFieldWidget": None,
+    "scoreWidget": None,  # scores window
+    "statsWidget": None,  # stats window
+    "scoreForm": None,  # input form for new highscore
     "difficulty": {
         "easy": [5, 5, 10],  # width, height, mines
         "normal": [10, 10, 30],
-        "hard": [15, 20, 50]
+        "hard": [15, 20, 50],
     },
-    "mineInfo": 10,          # show how many mines in the field, start with easy
+    "mineInfo": 10,  # show how many mines in the field, start with easy
     "difficultyInfo": "easy",  # start default as easy
     "scoreInfo": 0,  # when game ends, score gets counted and end up here
     "highScores": {  # list of top scores read from file to here
         "easy": [],
         "normal": [],
-        "hard": []
+        "hard": [],
     },
-    "gameStarts": {},  # datetime object
+    "gameStarts": None,  # datetime object
     "gameTurns": 0,
-    "statistics": []
+    "statistics": [],
 }
-buttonHeight = 40
-buttonWidth = 40
+BUTTONHEIGHT = 40
+BUTTONWIDTH = 40
 
 app = QApplication(sys.argv)
 myWindow = QWidget()
@@ -44,7 +53,7 @@ collector.setSizeConstraint(QVBoxLayout.SetFixedSize)
 
 infoBar = QWidget()
 infolayout = QHBoxLayout()
-infoText = "Mines left: {}".format(state['mineInfo'])
+infoText = "Mines left: {}".format(state["mineInfo"])
 minesCount = QLabel(infoText)
 infolayout.addWidget(minesCount)
 infoBar.setLayout(infolayout)
@@ -58,16 +67,14 @@ class scoreForm(QWidget):
     def __init__(self):
         super(scoreForm, self).__init__()
         layout = QVBoxLayout()
-        self.label = QLabel('New Highscore!')
-        self.label2 = QLabel(
-            'Enter your name, max 12 characters, ";" not allowed')
+        self.label = QLabel("New Highscore!")
+        self.label2 = QLabel('Enter your name, max 12 characters, ";" not allowed')
         self.nameInput = QLineEdit()
         self.nameInput.setMaxLength(12)
         self.nameInput.setFixedWidth(120)
-        self.sButton = QPushButton('Submit')
+        self.sButton = QPushButton("Submit")
         self.sButton.setFixedSize(90, 30)
-        self.sButton.clicked.connect(
-            lambda: self.submitScore())
+        self.sButton.clicked.connect(lambda: self.submitScore())
         layout.addWidget(self.label)
         layout.addWidget(self.label2)
         layout.addWidget(self.nameInput)
@@ -75,15 +82,15 @@ class scoreForm(QWidget):
         self.setLayout(layout)
 
     def submitScore(self):
-        if ';' in self.nameInput.text():
-            print('soo soo kielletty merkki')
+        if ";" in self.nameInput.text():
+            print("soo soo kielletty merkki")
         else:
-            newHighScore = (self.nameInput.text(), str(state['scoreInfo']))
-            state['highScores'][state['difficultyInfo']].append(newHighScore)
-            functions.sortAndCutHighScoreList(state['difficultyInfo'])
+            newHighScore = (self.nameInput.text(), str(state["scoreInfo"]))
+            state["highScores"][state["difficultyInfo"]].append(newHighScore)
+            functions.sortAndCutHighScoreList(state["difficultyInfo"], state)
             functions.writeFileNewScores(state)
             functions.initScores(collector)
-            state['scoreInfo'] = 0
+            state["scoreInfo"] = 0
             self.nameInput.clear()
             self.setDisabled(True)
 
@@ -115,11 +122,11 @@ class menuWidget(QWidget):
 
         self.b4.clicked.connect(lambda: self.toggleScores())
         layout.addWidget(self.b4, 0, 3)
-        self.b5 = QPushButton('Restart')
+        self.b5 = QPushButton("Restart")
         self.b5.clicked.connect(lambda: self.restartGame())
-        self.b6 = QPushButton('Quit')
+        self.b6 = QPushButton("Quit")
         self.b6.clicked.connect(lambda: self.quitGame())
-        self.b7 = QPushButton('Stats')
+        self.b7 = QPushButton("Stats")
         self.b7.clicked.connect(lambda: self.showStats())
 
         layout.addWidget(self.b5, 1, 0)
@@ -145,7 +152,7 @@ class menuWidget(QWidget):
             self.b5.setEnabled(False)
             self.b6.setEnabled(False)
             minesCount.hide()
-            state['mineFieldWidget'].hide()
+            state["mineFieldWidget"].hide()
         else:
             statsWindow.hide()
             self.b1.setEnabled(True)
@@ -154,25 +161,24 @@ class menuWidget(QWidget):
             self.b4.setEnabled(True)
             self.b5.setEnabled(True)
             self.b6.setEnabled(True)
-            state['mineFieldWidget'].show()
+            state["mineFieldWidget"].show()
             minesCount.show()
 
     def quitGame(self):
         sys.exit()
 
     def restartGame(self):
-        diff = state['difficulty'][state['difficultyInfo']]
-        functions.changeDifficulty(
-            collector, diff[0], diff[1], diff[2])
-        state['gameStarts'] = datetime.now()
-        state['gameTurns'] = 0
-        minesCount.setText(functions.getInfoText(state['mineInfo']))
+        diff = state["difficulty"][state["difficultyInfo"]]
+        functions.changeDifficulty(collector, diff[0], diff[1], diff[2], state)
+        state["gameStarts"] = datetime.now()
+        state["gameTurns"] = 0
+        minesCount.setText(functions.getInfoText(state["mineInfo"]))
 
     def toggleScores(self):
-        scoreBoard = state['scoreWidget']
+        scoreBoard = state["scoreWidget"]
         if scoreBoard.isHidden():
-            scoreBoard.setFixedWidth(state['mineFieldWidget'].width())
-            scoreBoard.setFixedHeight(state['mineFieldWidget'].height())
+            scoreBoard.setFixedWidth(state["mineFieldWidget"].width())
+            scoreBoard.setFixedHeight(state["mineFieldWidget"].height())
             scoreBoard.show()
             self.b1.setEnabled(False)
             self.b2.setEnabled(False)
@@ -181,7 +187,7 @@ class menuWidget(QWidget):
             self.b6.setEnabled(False)
             self.b7.setEnabled(False)
             minesCount.hide()
-            state['mineFieldWidget'].hide()
+            state["mineFieldWidget"].hide()
         else:
             scoreBoard.hide()
             self.b1.setEnabled(True)
@@ -190,82 +196,77 @@ class menuWidget(QWidget):
             self.b5.setEnabled(True)
             self.b6.setEnabled(True)
             self.b7.setEnabled(True)
-            state['mineFieldWidget'].show()
+            state["mineFieldWidget"].show()
             minesCount.show()
 
     def setDifficulty(self, button):
-        state['gameStarts'] = datetime.now()
-        state['gameTurns'] = 0
+        state["gameStarts"] = datetime.now()
+        state["gameTurns"] = 0
         if button.isChecked():
             difficulty = button.property("difficulty")
             if difficulty == "hard":
-                hard = state['difficulty']['hard']
-                state['mineInfo'] = hard[2]
-                state['difficultyInfo'] = 'hard'
+                hard = state["difficulty"]["hard"]
+                state["mineInfo"] = hard[2]
+                state["difficultyInfo"] = "hard"
                 text = "Mines left: {}".format(hard[2])
                 minesCount.setText(text)
-                functions.changeDifficulty(
-                    collector, hard[0], hard[1], hard[2])
+                functions.changeDifficulty(collector, hard[0], hard[1], hard[2], state)
 
             if difficulty == "normal":
-                normal = state['difficulty']['normal']
-                state['mineInfo'] = normal[2]
-                state['difficultyInfo'] = 'normal'
+                normal = state["difficulty"]["normal"]
+                state["mineInfo"] = normal[2]
+                state["difficultyInfo"] = "normal"
                 text = "Mines left: {}".format(normal[2])
                 minesCount.setText(text)
                 functions.changeDifficulty(
-                    collector, normal[0], normal[1], normal[2])
+                    collector, normal[0], normal[1], normal[2], state
+                )
 
             if difficulty == "easy":
-                easy = state['difficulty']['easy']
-                state['mineInfo'] = easy[2]
-                state['difficultyInfo'] = 'easy'
+                easy = state["difficulty"]["easy"]
+                state["mineInfo"] = easy[2]
+                state["difficultyInfo"] = "easy"
                 text = "Mines left: {}".format(easy[2])
                 minesCount.setText(text)
-                functions.changeDifficulty(
-                    collector, easy[0], easy[1], easy[2])
+                functions.changeDifficulty(collector, easy[0], easy[1], easy[2], state)
 
 
 menu = menuWidget()
 
 
 class fieldButton(QPushButton):
-    def __init__(self):
-        super(fieldButton, self).__init__()
-
     def mousePressEvent(self, event):
-        pos = self.property('position')
+        pos = self.property("position")
         if event.button() == Qt.MouseButton.RightButton:
-            if state['showField'][pos[0]][pos[1]] == 's':
-                state['mineInfo'] += -1
-                minesCount.setText(functions.getInfoText(state['mineInfo']))
-                self.setIcon(QIcon(QPixmap(images['l'])))
-                state['showField'][pos[0]][pos[1]] = 'l'
+            if state["showField"][pos[0]][pos[1]] == "s":
+                state["mineInfo"] += -1
+                minesCount.setText(functions.getInfoText(state["mineInfo"]))
+                self.setIcon(QIcon(QPixmap(images["l"])))
+                state["showField"][pos[0]][pos[1]] = "l"
                 # flags get to 0, game ends
-                if state['mineInfo'] <= 0:
+                if state["mineInfo"] <= 0:
                     functions.endGame()
-            elif state['showField'][pos[0]][pos[1]] == 'l':
-                state['mineInfo'] += 1
-                minesCount.setText(functions.getInfoText(state['mineInfo']))
-                self.setIcon(QIcon(QPixmap(images['s'])))
-                state['showField'][pos[0]][pos[1]] = 's'
+            elif state["showField"][pos[0]][pos[1]] == "l":
+                state["mineInfo"] += 1
+                minesCount.setText(functions.getInfoText(state["mineInfo"]))
+                self.setIcon(QIcon(QPixmap(images["s"])))
+                state["showField"][pos[0]][pos[1]] = "s"
         else:
-            functions.floodFill(pos[1], pos[0])
-            state['gameTurns'] += 1
+            functions.floodFill(pos[1], pos[0], state)
+            state["gameTurns"] += 1
 
 
 images = {
-    '1': 'spritet/ruutu_1.png',
-    '2': 'spritet/ruutu_2.png',
-    '3': 'spritet/ruutu_3.png',
-    '4': 'spritet/ruutu_4.png',
-    '5': 'spritet/ruutu_5.png',
-    '6': 'spritet/ruutu_6.png',
-    '7': 'spritet/ruutu_7.png',
-    '8': 'spritet/ruutu_8.png',
-    'x': 'spritet/ruutu_miina.png',
-    's': 'spritet/ruutu_selka.png',
-    '0': 'spritet/ruutu_tyhja.png',
-    'l': 'spritet/ruutu_lippu.png',
-
+    "1": "spritet/ruutu_1.png",
+    "2": "spritet/ruutu_2.png",
+    "3": "spritet/ruutu_3.png",
+    "4": "spritet/ruutu_4.png",
+    "5": "spritet/ruutu_5.png",
+    "6": "spritet/ruutu_6.png",
+    "7": "spritet/ruutu_7.png",
+    "8": "spritet/ruutu_8.png",
+    "x": "spritet/ruutu_miina.png",
+    "s": "spritet/ruutu_selka.png",
+    "0": "spritet/ruutu_tyhja.png",
+    "l": "spritet/ruutu_lippu.png",
 }
