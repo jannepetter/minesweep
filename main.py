@@ -26,11 +26,11 @@ def main():
     fieldHeight = easy[1]
     mines = easy[2]
     print("miinoja", mines)
+
     setState(fieldWidth, fieldHeight, mines)
 
     mineField = initField(state, BUTTONWIDTH, BUTTONHEIGHT)
     mineFieldWidget.setLayout(mineField)
-
     collector.addWidget(menu)
     initStats(collector, state)
     initScores(collector)

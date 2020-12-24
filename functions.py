@@ -257,6 +257,8 @@ def floodFill(startX: int, startY: int, stateInfo: dict):
         stateInfo["showField"][startY][startX] = "x"
         endGame()
         return
+    elif stateInfo["showField"][startY][startX] != "s":
+        return
     floodList = [(startX, startY)]
     height = len(stateInfo["field"]) - 1
     width = len(stateInfo["field"][0]) - 1
